@@ -123,7 +123,7 @@ class Switchboard_db_Admin {
 
 	public function send_salesforce() {
 
-		if ( verify_reCaptcha($_POST['g-recaptcha-response']) ) {
+		if ( $this->verify_reCaptcha($_POST['g-recaptcha-response']) ) {
 			$url="https://webto.salesforce.com/servlet/servlet.WebToLead?encoding=UTF-8";
 			//add post generation and send
 
@@ -138,6 +138,13 @@ class Switchboard_db_Admin {
 				)
 			);
 			$context  = stream_context_create($options);
+            $result = file_get_contents($url, false, $context);
+            if ($result === FALSE) { /* Handle error */ }
+
+            //redirect back to contact form with success message
+            wp_safe_redirect( $data['retURL'] );
+
+
 
 		} else {
 			$headerString = "Location: " . get_site_url() . "/contact/?contact=general&message=captcha";
