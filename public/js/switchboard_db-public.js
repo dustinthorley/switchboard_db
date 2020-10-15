@@ -330,7 +330,7 @@
 						<input type="submit" name="submit" value="Send to the resource provider" class="form-button w-button">
 						<div id="html_element"></div>
 						<script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit"
-        					async defer>
+        					>
     					</script>
 					</form>
 					
