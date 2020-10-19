@@ -319,6 +319,7 @@
 			
 						<input type="submit" name="submit" value="Send to the resource provider" class="form-button w-button">
 						<div id="captcha${resource.resourceID}"></div>
+
 					</form>
 					
 				  </div>
