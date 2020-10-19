@@ -146,16 +146,6 @@
 		var resources = $("#results");
 		resources.empty();
 		if ( response != '' ) {
-			let captchaLoad = `<script type="text/javascript">
-			var onloadCallback = function() {
-			  
-			  grecaptcha.render(
-				'html_element', {
-					'sitekey' : "6LcmxtQZAAAAABruElIt1ElI0FhjbYjiXJef9_0b"
-				});
-			};
-		  </script>`;
-			resources.append(captchaLoad);
 			response.forEach(function(resource){
 				var department = resource.departmentName != null ? ': ' + resource.departmentName : '';
 				//var all = resource.stageList.includes("All");
@@ -328,10 +318,8 @@
 						</div>
 			
 						<input type="submit" name="submit" value="Send to the resource provider" class="form-button w-button">
-						<div id="html_element"></div>
-						<script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit"
-        					>
-    					</script>
+						<div id="captcha${resource.resourceID}"></div>
+
 					</form>
 					
 				  </div>
@@ -355,8 +343,6 @@ function addClickEvents() {
 	document.querySelectorAll(".resource-titles").forEach(item=>{
 		var value = item.getAttribute("data-resource");
 
-		setPointers(value);
-
 		item.addEventListener('click', event => {
 			event.preventDefault();
 			openCard(value);
@@ -367,7 +353,7 @@ function addClickEvents() {
 function openCard(idNum){
 
 	// Open resource card
-	if ( cardOpen == null ) {
+	if ( cardOpen == null ) { //no card open - just open resource
 		for ( target in values ) {
 			if ( !values.hasOwnProperty(target)) continue;
 	
@@ -377,9 +363,15 @@ function openCard(idNum){
 
 		}
 
+		//load captcha for that resource
+		grecaptcha.render(document.getElementById('captcha'+idNum), {
+			'sitekey' : "6LcmxtQZAAAAABruElIt1ElI0FhjbYjiXJef9_0b"
+		});
+
+
 		cardOpen = idNum;
 	}
-	else if ( cardOpen == idNum ) {
+	else if ( cardOpen == idNum ) { //clicked on open card - close it
 		for ( target in values ) {
 			if ( !values.hasOwnProperty(target)) continue;
 	
@@ -391,7 +383,7 @@ function openCard(idNum){
 
 		cardOpen = null;
 	}
-	else {
+	else { //other resource already open - open new one, close old
 		for ( target in values ) {
 			if ( !values.hasOwnProperty(target)) continue;
 	
@@ -404,37 +396,13 @@ function openCard(idNum){
 			});
 
 		}
-		
+		//load captcha for that resource
+		grecaptcha.render(document.getElementById('captcha'+idNum), {
+			'sitekey' : "6LcmxtQZAAAAABruElIt1ElI0FhjbYjiXJef9_0b"
+		});
 		cardOpen = idNum;
 	}
 
-	
-
-
-	
-	// Close other card if open
-
-	// Update what card is open	
-
-
-
-
-	for ( var target in values ) {
-		if ( !values.hasOwnProperty(target)) continue;
-
-		if ( pointers["resource" + idNum] ) {
-			document.getElementsByName( target + idNum ).forEach(item=>{
-				item.classList.remove(values[target]);
-			});
-		}
-		else {
-			document.getElementsByName( target + idNum ).forEach(item=>{
-				item.classList.add(values[target]);
-			});
-		}
-	}
-
-	pointers["resource" + idNum] = !pointers["resource" + idNum];
 }
 
 function formTabs(targetForm) {
@@ -460,14 +428,8 @@ function formTabs(targetForm) {
 		else {
 			item.classList.remove("w--tab-active");
 		}
-	})	
+	})
 
-}
-
-function setPointers(value) {
-	if(!pointers.hasOwnProperty("resource" + value)) {
-		pointers["resource" + value] = false;
-	}
 }
 
 function updateSelect() {
@@ -481,7 +443,6 @@ function updateSelect() {
 
 var cardOpen = null;
 
-var pointers = {};
 
 var values = {
 	"chevron" : "chevron-open",

@@ -163,6 +163,8 @@ class Switchboard_db {
 		$this->loader->add_action( 'admin_post_salesForce_form', $plugin_admin, 'send_salesforce');
         $this->loader->add_action( 'admin_post_nopriv_salesForce_form', $plugin_admin, 'send_salesforce');
 
+
+
 		$this->loader->add_action( 'admin_post_load_csv', $plugin_admin, 'load_csv' );
 	}
 
@@ -198,6 +200,9 @@ class Switchboard_db {
 
 		$this->loader->add_action( 'wp_ajax_search_switchboard', $plugin_resource, 'search_resources' );
 		$this->loader->add_action( 'wp_ajax_nopriv_search_switchboard', $plugin_resource, 'search_resources' );
+
+        $this->loader->add_action( 'admin_post_search_switchboard', $plugin_resource, 'search_resources');
+        $this->loader->add_action( 'admin_post_nopriv_search_switchboard', $plugin_resource, 'search_resources');
 
 		
 

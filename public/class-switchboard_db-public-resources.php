@@ -80,15 +80,28 @@ class Switchboard_db_Public_Resources {
 			$id = 'r.organizationID';
 			$idVal = $args['provider'];
 		}
+		elseif ( isset( $args['keyword'] ) ) {
+		    $id = 'resourceID';
+		    $idVal = $args['keyword'];
+        }
 
 		global $wpdb;
         $whereClause = "";
         if ( isset( $id ) ) {
-            $whereClause = $wpdb->prepare( " WHERE " . $id ." = %s ", $idVal );
+
+			$valArray = explode(',', $idVal );
+			$stringcount = count($valArray);
+			$stringPlaceholders = array_fill(0, $stringcount, '%s');
+			$placeholdersForVal = implode(',', $stringPlaceholders);
+
+			$whereClause = $wpdb->prepare( " WHERE " . $id ." IN (". $placeholdersForVal .") ", $valArray );
         }
 
 		$this->perform_search($whereClause);
-		$this->display_resources();
+
+        //load resources into JSON?
+
+        $this->display_resources();
 	}
 
 	/**
@@ -160,7 +173,7 @@ class Switchboard_db_Public_Resources {
 	 */
 	public function display_resources() {
 		?>
-		<script src="https://www.google.com/recaptcha/api.js"></script> <!-- Google reCaptcha script -->
+
 		<?php
         foreach ( $this->resources as $resource ) {
             include plugin_dir_path( dirname( __FILE__ ) ) .  'public/partials/switchboard_db-public-resource.php';
@@ -175,7 +188,13 @@ class Switchboard_db_Public_Resources {
 		foreach ( $data as $key => $filter ){
 			if ( $_POST[$filter->filterTag] != "" ){
 				$filterID = $filter->filterIDName == 'organizationID' ? 'r.' . $filter->filterIDName : $filter->filterIDName;
-				$searchVal = $wpdb->prepare( $filterID .' IN (%s)', $_POST[$filter->filterTag] );
+
+				$valArray = explode(',', $_POST[$filter->filterTag] );
+				$stringcount = count($valArray);
+				$stringPlaceholders = array_fill(0, $stringcount, '%s');
+				$placeholdersForVal = implode(',', $stringPlaceholders);
+
+				$searchVal = $wpdb->prepare( $filterID .' IN ('. $placeholdersForVal .')', $valArray );
 				$searchTerms[] = $searchVal;
 			}
 		}
@@ -209,11 +228,12 @@ class Switchboard_db_Public_Resources {
 	public function search_resources() {
 		global $wpdb;
 
-		$input = stripslashes( $_POST['search'] );
+		$input = isset( $_POST['search']) ? stripslashes( $_POST['search'] ) : stripslashes( $_GET['field'] ) ;
 
 		$like = "%" . $wpdb->esc_like( $input ) . "%";
 
-		$free = $_POST[ 'free' ] == 'true' ? ' AND costID = 1 ' : '';
+		$free = "";
+		//$free = $_POST[ 'free' ] == 'true' ? ' AND costID = 1 ' : '';
 
 		$searchQuery = "SELECT 
 		resourceID,
@@ -266,10 +286,24 @@ class Switchboard_db_Public_Resources {
 		$sql = $wpdb->prepare( $searchQuery, $like, $like, $like );
 
 		$this->resources = $wpdb->get_results( $sql );
-		
-		$response = json_encode( $this->resources );
-		
-		wp_die( $response );
+
+		if( isset( $_GET['field'] ) ) {
+			$ids = "";
+
+		    foreach ( $this->resources as $resource ) {
+				$ids .= $resource->resourceID;
+				$ids .= ",";
+			}
+			$ids = rtrim($ids, ',');
+		    $url = get_site_url() . "/resources/?keyword=" . $ids;
+            wp_safe_redirect( $url );
+        }
+		else {
+            $response = json_encode( $this->resources );
+
+            wp_die( $response );
+        }
+
 		
 	}
 

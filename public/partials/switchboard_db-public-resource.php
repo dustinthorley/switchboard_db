@@ -182,7 +182,8 @@
             </div>
 
             <input type="submit" name="submit" value="Send to the resource provider" class="form-button w-button">
-            <div class="g-recaptcha" data-sitekey="6LcmxtQZAAAAABruElIt1ElI0FhjbYjiXJef9_0b"></div>
+            <div id="captcha<?php echo $resource->resourceID ?>"></div>
+
         </form>
       </div>
     </div>
