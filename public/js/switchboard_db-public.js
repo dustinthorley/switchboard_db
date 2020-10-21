@@ -268,8 +268,12 @@
 						  </div>
 						</div>
 						<div id="captcha${resource.resourceID}"></div>
+<<<<<<< HEAD
 						<input type="submit" name="submit" value="Send to the resource provider" class="form-button w-button">
 						${showMessage}
+=======
+
+>>>>>>> 1ad7d0a8b602e07295ed5ff45d9dd7a74e9a9453
 					</form>
 				  </div>
 				</div>
