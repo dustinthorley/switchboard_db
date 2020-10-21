@@ -204,7 +204,7 @@ class Switchboard_db_Public_Resources {
 	 */
 	public function display_resources() {
 		?>
-
+<!--		<script src="https://www.google.com/recaptcha/api.js" async defer></script>--> <!-- Google reCaptcha script -->
 		<?php
         foreach ( $this->resources as $resource ) {
             include plugin_dir_path( dirname( __FILE__ ) ) .  'public/partials/switchboard_db-public-resource.php';
