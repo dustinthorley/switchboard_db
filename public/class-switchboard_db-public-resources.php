@@ -95,6 +95,37 @@ class Switchboard_db_Public_Resources {
 			$placeholdersForVal = implode(',', $stringPlaceholders);
 
 			$whereClause = $wpdb->prepare( " WHERE " . $id ." IN (". $placeholdersForVal .") ", $valArray );
+        } else {
+            $filters = array('stages', 'categories', 'types', 'providers', 'groups', 'free');
+            foreach ($filters as $filter) {
+                if ( isset($args[$filter] ) ) {
+
+                    switch($filter) {
+                        case 'stages':
+                            $id="stageID";
+                            break;
+                        case 'categories':
+                            $id="categoryID";
+                            break;
+                        case 'types':
+                            $id="supportID";
+                            break;
+                        case 'providers':
+                            $id="organizationID";
+                            break;
+                        case 'groups':
+                            $id="groupID";
+                            break;
+                        case 'free':
+                            $id="costID";
+                            break;
+                    }
+
+                    $selected = $args[$filter];
+                    $whereClause .= strlen($whereClause) > 0 ? " AND $id IN ($selected)" : "WHERE $id IN ($selected)";
+
+                }
+            }
         }
 
 		$this->perform_search($whereClause);

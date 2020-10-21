@@ -29,8 +29,42 @@
 	 * practising this, we should strive to set a better example in our own work.
 	 */
 
-	 $(document).ready(function(){
+	 //reads get paramaters in the url and makes them accessable to JS functions
+	var urlParams; 
+	(window.onpopstate = function () {
+    	var match,
+        	pl     = /\+/g,  // Regex for replacing addition symbol with a space
+        	search = /([^&=]+)=?([^&]*)/g,
+        	decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); },
+        	query  = window.location.search.substring(1);
 
+    	urlParams = {};
+    	while (match = search.exec(query))
+       		urlParams[decode(match[1])] = decode(match[2]);
+	})();
+
+	window.addEventListener('load', function(){
+		//open card if passed in parameters
+		if ( "open" in urlParams ) {
+			openCard(urlParams['open']);
+		}
+	});
+
+	$(document).ready(function(){
+
+		//make filters checked if they are in the get parameters
+		filters.map((filter)=>{
+			if ( filter in urlParams ) {
+				document.getElementsByName(filter).forEach(item=>{
+					if ( urlParams[filter].includes( item.value ) ) {
+						item.checked = true;
+					}
+				});
+			}
+		})
+		updateFilters(); //add any filters just checked to the activeFilters in the form
+
+		//change the placeholder text in the search bar if mobile screen
 		const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
 		if ( vw <= 479 ) {
 			document.getElementById("search").placeholder = "Search...";
@@ -38,110 +72,14 @@
 			document.getElementById("search").placeholder = "Search by keyword, business stage, support category...";
 		}
 
+		//add click events to elements
 		addClickEvents();
 
-		document.querySelectorAll(".formTab").forEach(item=>{
-			//var activeForm = item.getAttribute("active-form");
-			//var hiddenForm = item.getAttribute("hidden-form");
-			var targetForm = item.getAttribute("target-form");
-
-			item.addEventListener('click', event => {
-				event.preventDefault();
-				formTabs(targetForm);
-			});
-		});
-
-		document.getElementById('more_filters').addEventListener('click', event => {
-			event.preventDefault();
-			if( $('#more_filters').html()=="Show more filter options") {
-				$('#more_filters').html("Show less filter options");
-			}
-			else {
-				$('#more_filters').html("Show more filter options");
-			}
-			$('.filters-secondary').toggle(200);
-		});
-
-		$("#apply_filter").click(function() {
 		
-			var btn = $("#apply_filter");
-			btn.text("Applying filters...");
 
-			var stages = $('input[name="stages"]:checked').map(function() {
-			  return $(this).val();
-			}).get().join(',');
-			
-			var categories = $('input[name="categories"]:checked').map(function() {
-			  return $(this).val();
-			}).get().join(',');
-		
-			var types = $('input[name="types"]:checked').map(function() {
-			  return $(this).val();
-			}).get().join(',');
-		
-			var providers = $('input[name="providers"]:checked').map(function() {
-			  return $(this).val();
-			}).get().join(',');
-		
-			var groups = $('input[name="groups"]:checked').map(function() {
-			  return $(this).val();
-			}).get().join(',');
+	});
 
-			var free = document.getElementById('free-resources').checked ? true: false;
-			
-			$.ajax({
-			  type : "POST",
-			  dataType : "json",
-			  url : myAjax.ajaxurl,
-			  data : {
-				'action' : 'filter_switchboard_resources',
-				'stages' : stages,
-				'categories' : categories,
-				'types' : types,
-				'providers' : providers,
-				'groups' : groups,
-				'free' : free,
-			  },
-			  success: function(response) {
-				btn.text("Apply filters");
-				display_resources(response);
-			  }
-			})
-		  });
-	  
-		  $("#hide_filters").click(function() {
-			  $("#filter_panel").toggle();
-			var btn = $("#hide_filters");
-			if (btn.text()=="Show Filters") {
-			  btn.text("Hide Filters");
-			}
-			else {
-			  btn.text("Show Filters");
-			}
-		  });
-	  
-		  $("#search_filter").click(function() {
-			var btn = $("#search_filter");
-			btn.text("Searching...");
-			var free = document.getElementById('free-resources').checked ? true: false;  
-			$.ajax({
-			  type: "POST",
-			  dataType: "json",
-			  url: myAjax.ajaxurl,
-			  data: {
-				'action' : 'search_switchboard',
-				'search' : $("#search").val(),
-				'free'	 : free,
-			  },
-			  success: function(response) {
-				btn.text("Search List");
-				display_resources(response);
-			  }
-			});
-		  });
-
-	 });
-
+	//displays resources returned from db
 	function display_resources(response) {
 		var resources = $("#results");
 		resources.empty();
@@ -178,9 +116,22 @@
 				catch(err){
 					categoryList = `<li class="types">${resource.categoryList}</li>`; // if error output the categoryList without trying to split
 				}
-				var row = `<div class="resource" name="expanding-container${resource.resourceID}">
+				var message = ("message" in urlParams) ? urlParams["message"] : "";
+
+				var showMessage ="";
+				if ( message == "success" ) {
+					showMessage = `<div class="w-form-done" style="display: block">
+						<div>Thank you! Your submission has been received!</div>
+						 </div>`;
+				} else if ( message == "captcha" ) {
+					showMessage = `<div class="w-form-fail" style="display: block">
+						<div>Please complete the captcha before submitting this form.</div>
+				  		</div>`;
+				}
+
+				var row = `<a name="${resource.resourceID}"></a>
+				<div class="resource" name="expanding-container${resource.resourceID}">
 				<div class="card-1">
-				
 				  <div class="resource-titles" data-resource="${resource.resourceID}">
 					<div>
 					  <h4 class="resource-name">${resource.resourceName}</h4>
@@ -241,29 +192,29 @@
 				  <div class="provider-brand"><img src="${switchboard_data.theme_uri}/images/${resource.organizationLogo}" alt="${resource.organizationName} Logo">
 				  <a href="${resource.organizationWebsite}" target="_blank" class="link">${resource.organizationWebsite}</a></div>
 				  <div class="w-form">
-			
 					<form action="https://myswitchboard.ca/wp-admin/admin-post.php" method="POST" id="email-form${resource.resourceID}" class="form" name="email-form${resource.resourceID}">
 						<input type="hidden" name="action" value="salesForce_form" />
 						<input type=hidden name="oid" value="00D60000000JHbB">
-						<input type=hidden name="retURL" value="${switchboard_data.url}/resources/?open=${resource.resourceID}">
+						<input type=hidden name="retURL" value="${switchboard_data.url}/resources/">
+						<input type="hidden" name="open" value="${resource.resourceID}">
 						<input type=hidden name="recordType" value="0125x000000URaw">
 						<input type=hidden id="00N5x00000ENWRs" name="00N5x00000ENWRs" value="Individual Resource Inquiry">
 						<input type=hidden id="00N5x00000ENWCn" name="00N5x00000ENWCn" value="${resource.organizationName}">
 						<input type=hidden id="00N5x00000ENWBL" name="00N5x00000ENWBL" value="${resource.resourceName}">
 						<input type=hidden id="00N5x00000Ef2E7" name="00N5x00000Ef2E7" value="${resource.resourceEmail}">
             			<input type=hidden id="00N5x00000Ef2EC" name="00N5x00000Ef2EC" value="https://myswitchboard.ca/resources/?provider=${resource.resourceID}">
-			
+						<input type="hidden" id="activeFilters" name="activeFilters" value="">
 						<div class="grid-container">
 						  <div class="salesforce-header">
 							<h1 class="form-header">Message this Resource Provider</h1>
 						  </div>
 						  <div class="first-name">
 							<label for="first_name" class="form-label">First Name</label>
-							<input  id="first_name" maxlength="40" name="first_name" size="20" type="text" class="text-field w-input" />
+							<input  id="first_name" maxlength="40" name="first_name" size="20" type="text" class="text-field w-input" required />
 						  </div>
 						  <div class="last-name">
 							<label for="last_name" class="form-label">Last Name</label>
-							<input  id="last_name" maxlength="80" name="last_name" size="20" type="text" class="text-field w-input" />
+							<input  id="last_name" maxlength="80" name="last_name" size="20" type="text" class="text-field w-input" required />
 						  </div>
 						  <div class="company">
 							<label for="company" class="form-label">Company Name</label>
@@ -311,17 +262,19 @@
 								Send me promotional emails about new funding opportunities, programs, services and events</label>
 							<br>
 							<label for="00N60000002i94S" class="form-label">
-                  				<input  id="00N60000002i94S" name="00N60000002i94S" type="checkbox" value="Electronic consent received when submitting Switchboard Individual Resource Inquiry Intake Form." /> I understand that the information submitted in this form will be shared with partners that are outside of the Switchboard Business Support Hub organization</label>
+                  				<input  id="00N60000002i94S" name="00N60000002i94S" type="checkbox" value="Electronic consent received when submitting Switchboard Individual Resource Inquiry Intake Form." required /> I understand that the information submitted in this form will be shared with partners that are outside of the Switchboard Business Support Hub organization</label>
                 			<br>
 							<input type=hidden id="00N60000002i94N" name="00N60000002i94N" title="CASL Consent Method" value="Entrepreneurial Ecosystem Project">
 						  </div>
 						</div>
-			
-						<input type="submit" name="submit" value="Send to the resource provider" class="form-button w-button">
 						<div id="captcha${resource.resourceID}"></div>
+<<<<<<< HEAD
+						<input type="submit" name="submit" value="Send to the resource provider" class="form-button w-button">
+						${showMessage}
+=======
 
+>>>>>>> 1ad7d0a8b602e07295ed5ff45d9dd7a74e9a9453
 					</form>
-					
 				  </div>
 				</div>
 			  </div>`;
@@ -335,120 +288,272 @@
 		
 		$( document.body ).trigger( 'post-load' ); 
 		addClickEvents();
+	}
+
+	function addClickEvents() {
+		if ( document.querySelectorAll(".resource-titles").length > 0 ) { //check if resource page
+			document.querySelectorAll(".resource-titles").forEach(item=>{
+				var value = item.getAttribute("data-resource");
+
+				item.addEventListener('click', event => {
+					event.preventDefault();
+					openCard(value);
+				});
+			});
+
+			filters.map((filter)=>{
+				document.getElementsByName(filter).forEach(item=>{
+					item.addEventListener('click', event=>{
+						updateFilters();
+					});
+				});
+			});
+
+			document.getElementById('more_filters').addEventListener('click', event => {
+				event.preventDefault();
+				if( $('#more_filters').html()=="Show more filter options") {
+					$('#more_filters').html("Show less filter options");
+				}
+				else {
+					$('#more_filters').html("Show more filter options");
+				}
+				$('.filters-secondary').toggle(200);
+			});
+	
+			$("#apply_filter").click(function() {
+			
+				var btn = $("#apply_filter");
+				btn.text("Applying filters...");
+	
+				var stages = $('input[name="stages"]:checked').map(function() {
+				  return $(this).val();
+				}).get().join(',');
+				
+				var categories = $('input[name="categories"]:checked').map(function() {
+				  return $(this).val();
+				}).get().join(',');
+			
+				var types = $('input[name="types"]:checked').map(function() {
+				  return $(this).val();
+				}).get().join(',');
+			
+				var providers = $('input[name="providers"]:checked').map(function() {
+				  return $(this).val();
+				}).get().join(',');
+			
+				var groups = $('input[name="groups"]:checked').map(function() {
+				  return $(this).val();
+				}).get().join(',');
+	
+				var free = document.getElementById('free-resources').checked ? true: false;
+				
+				$.ajax({
+				  type : "POST",
+				  dataType : "json",
+				  url : myAjax.ajaxurl,
+				  data : {
+					'action' : 'filter_switchboard_resources',
+					'stages' : stages,
+					'categories' : categories,
+					'types' : types,
+					'providers' : providers,
+					'groups' : groups,
+					'free' : free,
+				  },
+				  success: function(response) {
+					btn.text("Apply filters");
+					display_resources(response);
+				  }
+				})
+			  });
+		  
+			  $("#hide_filters").click(function() {
+				  $("#filter_panel").toggle();
+				var btn = $("#hide_filters");
+				if (btn.text()=="Show Filters") {
+				  btn.text("Hide Filters");
+				}
+				else {
+				  btn.text("Show Filters");
+				}
+			  });
+		  
+			  $("#search_filter").click(function() {
+				var btn = $("#search_filter");
+				btn.text("Searching...");
+				var free = document.getElementById('free-resources').checked ? true: false;  
+				$.ajax({
+				  type: "POST",
+				  dataType: "json",
+				  url: myAjax.ajaxurl,
+				  data: {
+					'action' : 'search_switchboard',
+					'search' : $("#search").val(),
+					'free'	 : free,
+				  },
+				  success: function(response) {
+					btn.text("Search");
+					display_resources(response);
+				  }
+				});
+			  });
+
+		}else if (document.querySelectorAll(".formTab").length > 0 ) { //check if contact page
+			document.querySelectorAll(".formTab").forEach(item=>{
+				//var activeForm = item.getAttribute("active-form");
+				//var hiddenForm = item.getAttribute("hidden-form");
+				var targetForm = item.getAttribute("target-form");
+	
+				item.addEventListener('click', event => {
+					event.preventDefault();
+					formTabs(targetForm);
+				});
+			});
+		}
+	}
+
+	function openCard(idNum){
+
+		// Open resource card
+		if ( cardOpen == null ) { //no card open - just open resource
+			for ( target in values ) {
+				if ( !values.hasOwnProperty(target)) continue;
+
+				document.getElementsByName( target + idNum ).forEach(item=>{
+					item.classList.add(values[target]);
+				});
+
+			}
+
+			//load captcha for that resource
+			if ( document.getElementById('captcha'+idNum).innerHTML === "" ) {
+				grecaptcha.render(document.getElementById('captcha'+idNum), {
+					'sitekey' : "6LcmxtQZAAAAABruElIt1ElI0FhjbYjiXJef9_0b"
+				});
+			}
+
+			cardOpen = idNum;
+		}
+		else if ( cardOpen == idNum ) { //clicked on open card - close it
+			for ( target in values ) {
+				if ( !values.hasOwnProperty(target)) continue;
+
+				document.getElementsByName( target + idNum ).forEach(item=>{
+					item.classList.remove(values[target]);
+				});
+
+			}
+
+			cardOpen = null;
+		}
+		else { //other resource already open - open new one, close old
+			for ( target in values ) {
+				if ( !values.hasOwnProperty(target)) continue;
+
+				document.getElementsByName( target + idNum ).forEach(item=>{
+					item.classList.add(values[target]);
+				});
+
+				document.getElementsByName( target + cardOpen ).forEach(item=>{
+					item.classList.remove(values[target]);
+				});
+
+			}
+			//load captcha for that resource
+			if ( document.getElementById('captcha'+idNum).innerHTML === "" ) {
+				grecaptcha.render(document.getElementById('captcha'+idNum), {
+					'sitekey' : "6LcmxtQZAAAAABruElIt1ElI0FhjbYjiXJef9_0b"
+				});
+			}
+			cardOpen = idNum;
+		}
+
+		// Close other card if open
+		// Update what card is open
+
+		for ( var target in values ) {
+			if ( !values.hasOwnProperty(target)) continue;
+
+			if ( pointers["resource" + idNum] ) {
+				document.getElementsByName( target + idNum ).forEach(item=>{
+					item.classList.remove(values[target]);
+				});
+			}
+			else {
+				document.getElementsByName( target + idNum ).forEach(item=>{
+					item.classList.add(values[target]);
+				});
+			}
+		}
+
+		pointers["resource" + idNum] = !pointers["resource" + idNum];
+
+	}
+
+	function formTabs(targetForm) {
+
+		document.querySelectorAll(".formTab").forEach(item=>{
+
+			if ( item.getAttribute("target-form") == targetForm ) {
+				item.classList.add("w--current");
+			}
+			else {
+				item.classList.remove("w--current");
+			}
+
+		});
+		document.querySelectorAll(".form").forEach(item=>{
+			if( item.id == "form" + targetForm) {
+				item.classList.add("w--tab-active");
+			}
+			else {
+				item.classList.remove("w--tab-active");
+			}
+		})
+
+	}
+
+	function setPointers(value) {
+		if(!pointers.hasOwnProperty("resource" + value)) {
+			pointers["resource" + value] = false;
+		}
+	}
+
+	//update filter values stored in resource forms
+	function updateFilters() {
+		var filterValues="";
+		let selected;
+		filters.forEach((filter)=>{
+			selected=$(`input[name="${filter}"]:checked`).map(function() {
+				return $(this).val();
+			}).get().join(',');
+			if ( selected !== "" ) {
+				filterValues += `&${filter}=${selected}`;
+			}
+		});
+		var forms = document.getElementsByName("activeFilters");
+		var idx;
+		for (idx = 0; idx < forms.length; idx++) {
+			forms[idx].value = filterValues;
+		}
+
+	}
+
+	//stores what resource card is open
+	var cardOpen = null;
+
+	//also stores what resource card is open?
+	var pointers = {};
+
+	//classes to be added/removed when opening a resource card
+	const values = {
+		"chevron" : "chevron-open",
+		"description" : "description-open",
+		"provider-card" : "provider-card-open",
+		"expanding-container" : "resource-open",
+		"list-2" : "stage-list-open",
+		"hidden-stage" : "hidden-stage-open"
 	};
+	const filters = ['stages', 'categories', 'types', 'providers', 'groups', 'free'];
 
 })( jQuery );
-
-function addClickEvents() {
-	document.querySelectorAll(".resource-titles").forEach(item=>{
-		var value = item.getAttribute("data-resource");
-
-		item.addEventListener('click', event => {
-			event.preventDefault();
-			openCard(value);
-		});
-	});
-}
-
-function openCard(idNum){
-
-	// Open resource card
-	if ( cardOpen == null ) { //no card open - just open resource
-		for ( target in values ) {
-			if ( !values.hasOwnProperty(target)) continue;
-	
-			document.getElementsByName( target + idNum ).forEach(item=>{
-				item.classList.add(values[target]);
-			});
-
-		}
-
-		//load captcha for that resource
-		grecaptcha.render(document.getElementById('captcha'+idNum), {
-			'sitekey' : "6LcmxtQZAAAAABruElIt1ElI0FhjbYjiXJef9_0b"
-		});
-
-
-		cardOpen = idNum;
-	}
-	else if ( cardOpen == idNum ) { //clicked on open card - close it
-		for ( target in values ) {
-			if ( !values.hasOwnProperty(target)) continue;
-	
-			document.getElementsByName( target + idNum ).forEach(item=>{
-				item.classList.remove(values[target]);
-			});
-
-		}
-
-		cardOpen = null;
-	}
-	else { //other resource already open - open new one, close old
-		for ( target in values ) {
-			if ( !values.hasOwnProperty(target)) continue;
-	
-			document.getElementsByName( target + idNum ).forEach(item=>{
-				item.classList.add(values[target]);
-			});
-
-			document.getElementsByName( target + cardOpen ).forEach(item=>{
-				item.classList.remove(values[target]);
-			});
-
-		}
-		//load captcha for that resource
-		grecaptcha.render(document.getElementById('captcha'+idNum), {
-			'sitekey' : "6LcmxtQZAAAAABruElIt1ElI0FhjbYjiXJef9_0b"
-		});
-		cardOpen = idNum;
-	}
-
-}
-
-function formTabs(targetForm) {
-
-	document.querySelectorAll(".formTab").forEach(item=>{
-		//alert("clicked tab " + targetForm);
-
-		if ( item.getAttribute("target-form") == targetForm ) {
-			item.classList.add("w--current");
-			//document.getElementById("form" + targetForm).classList.add("w--tab-active");
-		}
-		else {
-			item.classList.remove("w--current");
-			//document.getElementById("form" + targetForm).classList.remove("w--tab-active");
-		}
-		
-	});
-	document.querySelectorAll(".form").forEach(item=>{
-		//alert("id is " + item.id);
-		if( item.id == "form" + targetForm) {
-			item.classList.add("w--tab-active");
-		}
-		else {
-			item.classList.remove("w--tab-active");
-		}
-	})
-
-}
-
-function updateSelect() {
-	var selected = $('input[name="categories"]:checked').map(function() {
-		return $(this).val();
-	  }).get().join(',');
-	$.each(selected.split(","), function(i,e){
-		$("#00N5x00000ENWBB option[id='" + e + "']").prop("selected", true);
-	  });
-}
-
-var cardOpen = null;
-
-
-var values = {
-	"chevron" : "chevron-open",
-	"description" : "description-open",
-	"provider-card" : "provider-card-open",
-	"expanding-container" : "resource-open",
-	"list-2" : "stage-list-open",
-	"hidden-stage" : "hidden-stage-open"
-};

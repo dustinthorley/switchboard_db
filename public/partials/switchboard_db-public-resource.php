@@ -11,7 +11,7 @@
  * @subpackage Switchboard_db/public/partials
  */
 ?>
-
+<a name="<?php echo $resource->resourceID ?>"></a>
 <div class="resource" name="expanding-container<?php echo $resource->resourceID ?>">
     <div class="card-1">
     
@@ -110,13 +110,15 @@
         <form action="<?php echo esc_url( admin_url('admin-post.php') ); ?>" method="POST" id="email-form<?php echo $resource->resourceID ?>" class="form" name="email-form<?php echo $resource->resourceID ?>">
             <input type="hidden" name="action" value="salesForce_form" />
             <input type=hidden name="oid" value="00D60000000JHbB">
-            <input type=hidden name="retURL" value="<?php echo get_site_url() ?>/resources/?open=<?php echo $resource->resourceID ?>">
+            <input type=hidden name="retURL" value="<?php echo get_site_url() ?>/resources/">
+            <input type="hidden" name="open" value="<?php echo $resource->resourceID ?>">
             <input type=hidden name="recordType" value="0125x000000URaw">
             <input type=hidden id="00N5x00000ENWRs" name="00N5x00000ENWRs" value="Individual Resource Inquiry">
             <input type=hidden id="00N5x00000ENWCn" name="00N5x00000ENWCn" value="<?php echo $resource->organizationName ?>">
             <input type=hidden id="00N5x00000ENWBL" name="00N5x00000ENWBL" value="<?php echo $resource->resourceName ?>">
             <input type=hidden id="00N5x00000Ef2E7" name="00N5x00000Ef2E7" value="<?php echo $resource->resourceEmail ?>">
             <input type=hidden id="00N5x00000Ef2EC" name="00N5x00000Ef2EC" value="https://myswitchboard.ca/resources/?provider=<?php echo $resource->resourceID ?>">
+            <input type="hidden" id="activeFilters" name="activeFilters" value="">
 
             <div class="grid-container">
               <div class="salesforce-header">
@@ -124,11 +126,11 @@
               </div>
               <div class="first-name">
                 <label for="first_name" class="form-label">First Name</label>
-                <input  id="first_name" maxlength="40" name="first_name" size="20" type="text" class="text-field w-input" />
+                <input  id="first_name" maxlength="40" name="first_name" size="20" type="text" class="text-field w-input" required />
               </div>
               <div class="last-name">
                 <label for="last_name" class="form-label">Last Name</label>
-                <input  id="last_name" maxlength="80" name="last_name" size="20" type="text" class="text-field w-input" />
+                <input  id="last_name" maxlength="80" name="last_name" size="20" type="text" class="text-field w-input" required />
               </div>
               <div class="company">
                 <label for="company" class="form-label">Company Name</label>
@@ -175,15 +177,27 @@
                   <input  id="00N60000002i94D" name="00N60000002i94D" type="checkbox" value="1" /> Send me promotional emails about new funding opportunities, programs, services and events</label>
                 <br>
                 <label for="00N60000002i94S" class="form-label">
-                  <input  id="00N60000002i94S" name="00N60000002i94S" type="checkbox" value="Electronic consent received when submitting Switchboard Individual Resource Inquiry Intake Form." /> I understand that the information submitted in this form will be shared with partners that are outside of the Switchboard Business Support Hub organization</label>
+                  <input  id="00N60000002i94S" name="00N60000002i94S" type="checkbox" value="Electronic consent received when submitting Switchboard Individual Resource Inquiry Intake Form." required /> I understand that the information submitted in this form will be shared with partners that are outside of the Switchboard Business Support Hub organization</label>
                 <br>
                 <input type=hidden id="00N60000002i94N" name="00N60000002i94N" title="CASL Consent Method" value="Entrepreneurial Ecosystem Project">
               </div>
             </div>
 
-            <input type="submit" name="submit" value="Send to the resource provider" class="form-button w-button">
             <div id="captcha<?php echo $resource->resourceID ?>"></div>
+            <input type="submit" name="submit" value="Send to the resource provider" class="form-button w-button">
 
+            <?php 
+              if ( isset( $_GET['message'] ) ) {
+                ?>
+                <div class="w-form-done" <?php if ( $_GET['message']=="success" && $_GET['open']==$resource->resourceID ) { echo ' style="display: block"'; };?>>
+                  <div>Thank you! Your submission has been received!</div>
+                </div>
+                <div class="w-form-fail" <?php if ( $_GET['message']=="captcha" && $_GET['open']==$resource->resourceID ) { echo ' style="display: block"'; };?>>
+                  <div>Please complete the captcha before submitting this form.</div>
+                </div>
+                <?php
+              }
+            ?>
         </form>
       </div>
     </div>

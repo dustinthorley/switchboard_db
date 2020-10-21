@@ -129,6 +129,8 @@ class Switchboard_db_Admin {
 
 			$data = $_POST;
 
+			$filterText = $this->getFilterText($data['activeFilters']);
+			$data['00N60000003JIEL'] .= $filterText;
 			// use key 'http' even if you send the request to https://...
 			$options = array(
 				'http' => array(
@@ -137,18 +139,31 @@ class Switchboard_db_Admin {
 					'content' => http_build_query($data)
 				)
 			);
+			
 			$context  = stream_context_create($options);
             $result = file_get_contents($url, false, $context);
             if ($result === FALSE) { /* Handle error */ }
 
-            //redirect back to contact form with success message
-            wp_safe_redirect( $data['retURL'] );
-
-
+            $url = strpos($data['retURL'], "?") ? $data['retURL'] . "&message=success" : $data['retURL'] . "?message=success" ;
+            if ( isset($data['activeFilters']) ) {
+                $url .= $data['activeFilters'];
+            }
+            if ( isset($data['open']) ) {
+                $url .= "&open=". $data['open'] . "#" . $data['open'];
+            }
+            wp_safe_redirect($url);
 
 		} else {
-			$headerString = "Location: " . get_site_url() . "/contact/?contact=general&message=captcha";
-			header( $headerString );
+
+		    $url = strpos($_POST['retURL'], "?") ? $_POST['retURL'] . "&message=captcha" : $_POST['retURL'] . "?message=captcha" ;
+		    if ( isset($_POST['activeFilters']) ) {
+		        $url .= $_POST['activeFilters'];
+            }
+		    if ( isset($_POST['open']) ) {
+                $url .= "&open=". $_POST['open'] . "#" . $_POST['open'];
+            }
+		    wp_safe_redirect($url);
+
 		}
 
 	}
@@ -288,4 +303,27 @@ class Switchboard_db_Admin {
 		return $selectedRegions;
 	}
 
+	private function getFilterText($activeFilters) {
+	    //read filterIDs and return filter titles
+		$activeFilters = ltrim($activeFilters, '&');
+		$filterArray=explode('&',$activeFilters);
+		$filterText="\nActive Filters:";
+		foreach ($filterArray as $activeFilter) {
+			$split = strpos($activeFilter, '=');
+			$filterTitle = substr($activeFilter, 0, $split); //get before = in $activeFilter;
+			$filterIds = substr($activeFilter, $split+1, strlen($activeFilter)-$split+1); //get after = in $activeFilter;
+			global $wpdb;
+
+			$tableDetails = $wpdb->get_results($wpdb->prepare('SELECT filterIDName, filterName, filterTable, filterTitle FROM switchboard_options WHERE filterTag = %s', $filterTitle));
+
+			$valArray = explode(',', $filterIds );
+			$stringcount = count($valArray);
+			$stringPlaceholders = array_fill(0, $stringcount, '%s');
+			$placeholdersForVal = implode(',', $stringPlaceholders);
+
+			$filterString = $wpdb->get_results($wpdb->prepare( "SELECT GROUP_CONCAT(".$tableDetails[0]->filterName." SEPARATOR ', ') AS filterList FROM ".$tableDetails[0]->filterTable." WHERE ".$tableDetails[0]->filterIDName." IN (".$placeholdersForVal.")", $valArray ));
+			$filterText .= "\n".$tableDetails[0]->filterTitle.": ".$filterString[0]->filterList;
+		}
+		return $filterText;
+    }
 }
