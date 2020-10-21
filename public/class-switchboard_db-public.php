@@ -178,7 +178,8 @@ class Switchboard_db_Public {
 	private function active_filters() {
 		global $wpdb;
 		$filters = $wpdb->get_results( "SELECT filterTag FROM switchboard_options WHERE primaryFilter=1 OR secondaryFilter=1" );
-		return json_encode( $filters );
+		//return json_encode( $filters );
+        return ( $filters );
 	}
 
 
